@@ -12,7 +12,7 @@ class RustyChess < Formula
   end
 
   def install
-    bin.install "rusty-chess"
+    bin.install "player-vs-engine" => "rusty-chess"
   end
 
   test do
