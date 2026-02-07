@@ -2,8 +2,8 @@
 # Release Configuration
 # Update these variables when releasing a new version
 # ============================================================================
-VERSION = "1.4.8"
-MACOS_ARM64_SHA256 = "f737026edfc87807d1239784ebed34f34161eddc73634eb5d087de4fe79d5c58"
+VERSION = "1.6.0"
+MACOS_ARM64_SHA256 = "1eef25acc0307c0196a517d288bca1951a49f4ce81f8d55f5f842f836b233136"
 
 # ============================================================================
 # Homebrew Formula
