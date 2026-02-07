@@ -1,13 +1,23 @@
+# ============================================================================
+# Release Configuration
+# Update these variables when releasing a new version
+# ============================================================================
+VERSION = "1.4.8"
+MACOS_ARM64_SHA256 = "f737026edfc87807d1239784ebed34f34161eddc73634eb5d087de4fe79d5c58"
+
+# ============================================================================
+# Homebrew Formula
+# ============================================================================
 class RustyChess < Formula
   desc "Chess engine written in Rust"
   homepage "https://github.com/jwallace145/rusty-chess"
-  version "1.4.8"
+  version VERSION
   license "MIT"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/jwallace145/rusty-chess/releases/download/v1.4.8/rusty-chess-v1.4.8-aarch64-apple-darwin.tar.gz"
-      sha256 "f737026edfc87807d1239784ebed34f34161eddc73634eb5d087de4fe79d5c58"
+      url "https://github.com/jwallace145/rusty-chess/releases/download/v#{VERSION}/rusty-chess-v#{VERSION}-aarch64-apple-darwin.tar.gz"
+      sha256 MACOS_ARM64_SHA256
     end
   end
 
