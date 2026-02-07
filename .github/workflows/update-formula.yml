@@ -1,0 +1,95 @@
+name: Update Homebrew Formula
+
+on:
+  # Triggered by rusty-chess repository when a new release is published
+  repository_dispatch:
+    types: [new-release]
+
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update to (e.g., 1.4.9)'
+        required: false
+        type: string
+
+jobs:
+  update-formula:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get latest release info
+        id: release
+        run: |
+          # If manually triggered with a version, use that; otherwise get latest
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [ "${{ github.event.action }}" = "new-release" ]; then
+            VERSION="${{ github.event.client_payload.version }}"
+          else
+            # Fetch latest release from rusty-chess repository
+            RELEASE_JSON=$(curl -s https://api.github.com/repos/jwallace145/rusty-chess/releases/latest)
+            VERSION=$(echo "$RELEASE_JSON" | jq -r '.tag_name' | sed 's/^v//')
+          fi
+
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Updating to version: $VERSION"
+
+          # Construct download URL
+          DOWNLOAD_URL="https://github.com/jwallace145/rusty-chess/releases/download/v${VERSION}/rusty-chess-v${VERSION}-aarch64-apple-darwin.tar.gz"
+          echo "DOWNLOAD_URL=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
+
+      - name: Download and calculate SHA256
+        id: sha
+        run: |
+          # Download the release artifact
+          curl -L -o artifact.tar.gz "${{ steps.release.outputs.DOWNLOAD_URL }}"
+
+          # Calculate SHA256
+          SHA256=$(shasum -a 256 artifact.tar.gz | awk '{print $1}')
+          echo "SHA256=$SHA256" >> $GITHUB_OUTPUT
+          echo "Calculated SHA256: $SHA256"
+
+          # Clean up
+          rm artifact.tar.gz
+
+      - name: Update formula file
+        run: |
+          VERSION="${{ steps.release.outputs.VERSION }}"
+          SHA256="${{ steps.sha.outputs.SHA256 }}"
+
+          # Update VERSION line
+          sed -i "s/^VERSION = \".*\"$/VERSION = \"$VERSION\"/" rusty-chess.rb
+
+          # Update SHA256 line
+          sed -i "s/^MACOS_ARM64_SHA256 = \".*\"$/MACOS_ARM64_SHA256 = \"$SHA256\"/" rusty-chess.rb
+
+          echo "Updated rusty-chess.rb with version $VERSION and SHA256 $SHA256"
+
+      - name: Check for changes
+        id: changes
+        run: |
+          git diff --exit-code rusty-chess.rb || echo "has_changes=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push changes
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add rusty-chess.rb
+          git commit -m "chore: Update formula to version ${{ steps.release.outputs.VERSION }}"
+          git push
+
+      - name: Summary
+        run: |
+          echo "### Formula Update Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.release.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **SHA256**: ${{ steps.sha.outputs.SHA256 }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Download URL**: ${{ steps.release.outputs.DOWNLOAD_URL }}" >> $GITHUB_STEP_SUMMARY
